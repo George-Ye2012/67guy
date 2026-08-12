@@ -398,6 +398,11 @@ body {
 <script src="camera_utils.js"></script>
 <script src="hands/hands.js"></script>
 
+<!-- Workaround: 预设 Module.arguments 防止 Emscripten 内部 abort -->
+<script>
+window.createMediapipeSolutionsPackedAssets = { arguments: [] };
+</script>
+
 <!-- Supabase JS SDK (ESM) -->
 <script type="module">
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1'
