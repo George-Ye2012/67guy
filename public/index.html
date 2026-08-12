@@ -1,0 +1,1248 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>67guy</title>
+<style>
+/* ═══════════════════════════════════════════════════════════
+   RESET & BASE
+   ═══════════════════════════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+               "Microsoft YaHei", sans-serif;
+  background: #f5f5f5; color: #333; min-height: 100vh;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none; -webkit-user-select: none;
+}
+.page { display: none; min-height: 100vh; }
+.page.active { display: flex; flex-direction: column; }
+
+/* ═══════════════════════════════════════════════════════════
+   LOGIN & REGISTER PAGES
+   ═══════════════════════════════════════════════════════════ */
+.auth-page {
+  justify-content: center; align-items: center;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+  padding: 20px;
+}
+.auth-card {
+  background: #fff; border-radius: 16px; padding: 40px 30px;
+  width: 100%; max-width: 380px; box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  text-align: center;
+}
+.auth-card .logo {
+  width: 70px; height: 70px; border-radius: 50%;
+  background: #e74c3c; color: #fff; font-size: 32px; font-weight: 900;
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 20px; letter-spacing: -2px;
+}
+.auth-card h2 { font-size: 22px; margin-bottom: 24px; color: #1a1a2e; }
+.auth-card input {
+  width: 100%; padding: 14px 16px; margin-bottom: 14px;
+  border: 2px solid #e0e0e0; border-radius: 10px; font-size: 16px;
+  outline: none; transition: border-color 0.2s;
+}
+.auth-card input:focus { border-color: #e74c3c; }
+.auth-card .btn {
+  width: 100%; padding: 14px; border: none; border-radius: 10px;
+  font-size: 17px; font-weight: 600; cursor: pointer; transition: 0.2s;
+}
+.btn-primary { background: #e74c3c; color: #fff; }
+.btn-primary:hover { background: #c0392b; }
+.btn-primary:active { transform: scale(0.97); }
+.auth-card .link {
+  margin-top: 16px; font-size: 13px; color: #999; cursor: pointer;
+  text-decoration: underline;
+}
+.auth-card .link:hover { color: #e74c3c; }
+.auth-card .error {
+  color: #e74c3c; font-size: 14px; margin-bottom: 10px; min-height: 20px;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   MAIN APP - BOTTOM NAV
+   ═══════════════════════════════════════════════════════════ */
+.main-app { padding-bottom: 70px; background: #f5f5f5; min-height: 100vh; }
+.bottom-nav {
+  position: fixed; bottom: 0; left: 0; right: 0; height: 64px;
+  background: #fff; border-top: 1px solid #eee;
+  display: flex; z-index: 100; box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+}
+.bottom-nav .nav-item {
+  flex: 1; display: flex; flex-direction: column; align-items: center;
+  justify-content: center; cursor: pointer; color: #999; transition: 0.2s;
+}
+.bottom-nav .nav-item.active { color: #e74c3c; }
+.bottom-nav .nav-item .icon { font-size: 24px; margin-bottom: 2px; }
+.bottom-nav .nav-item .label { font-size: 11px; }
+
+/* ═══════════════════════════════════════════════════════════
+   HOME PAGE
+   ═══════════════════════════════════════════════════════════ */
+.home-content { padding: 20px; }
+.big-red-btn {
+  width: 160px; height: 160px; border-radius: 50%;
+  background: radial-gradient(circle at 40% 35%, #ff6b6b, #e74c3c 60%, #c0392b 100%);
+  color: #fff; font-size: 64px; font-weight: 900;
+  display: flex; align-items: center; justify-content: center;
+  margin: 30px auto 30px; cursor: pointer;
+  box-shadow: 0 8px 30px rgba(231,76,60,0.4);
+  transition: all 0.2s; user-select: none;
+  border: none; outline: none;
+  letter-spacing: -3px;
+}
+.big-red-btn:active { transform: scale(0.93); box-shadow: 0 4px 15px rgba(231,76,60,0.3); }
+.section-title {
+  font-size: 16px; font-weight: 700; color: #1a1a2e;
+  margin-bottom: 14px; display: flex; align-items: center; gap: 8px;
+}
+.section-title::before {
+  content: ''; width: 4px; height: 18px; background: #e74c3c; border-radius: 2px;
+}
+.leaderboard-list { background: #fff; border-radius: 12px; overflow: hidden; }
+.lb-item {
+  display: flex; align-items: center; padding: 12px 16px;
+  border-bottom: 1px solid #f0f0f0; gap: 12px;
+}
+.lb-item:last-child { border-bottom: none; }
+.lb-rank {
+  width: 28px; height: 28px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700; color: #999; flex-shrink: 0;
+}
+.lb-rank.top1 { background: #ffd700; color: #fff; font-size: 15px; }
+.lb-rank.top2 { background: #c0c0c0; color: #fff; font-size: 15px; }
+.lb-rank.top3 { background: #cd7f32; color: #fff; font-size: 15px; }
+.lb-avatar {
+  width: 40px; height: 40px; border-radius: 50%; object-fit: cover;
+  background: #eee; flex-shrink: 0;
+}
+.lb-nickname { flex: 1; font-size: 15px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lb-score { font-size: 16px; font-weight: 700; color: #e74c3c; flex-shrink: 0; }
+.lb-empty { text-align: center; padding: 40px; color: #bbb; font-size: 14px; }
+
+/* ═══════════════════════════════════════════════════════════
+   MY PAGE
+   ═══════════════════════════════════════════════════════════ */
+.my-content { padding: 20px; }
+.profile-section {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 30px 20px; background: #fff; border-radius: 12px; margin-bottom: 20px;
+}
+.avatar-wrap { position: relative; margin-bottom: 16px; }
+.avatar-img {
+  width: 90px; height: 90px; border-radius: 50%; object-fit: cover;
+  background: #eee; border: 3px solid #e74c3c;
+}
+.avatar-upload-btn {
+  position: absolute; bottom: 0; right: 0;
+  width: 32px; height: 32px; border-radius: 50%;
+  background: #e74c3c; color: #fff; border: none;
+  font-size: 18px; cursor: pointer; display: flex;
+  align-items: center; justify-content: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+.avatar-upload-btn:active { transform: scale(0.9); }
+.profile-nickname { font-size: 18px; font-weight: 700; }
+.profile-highscore { font-size: 14px; color: #999; margin-top: 4px; }
+.profile-highscore span { color: #e74c3c; font-weight: 700; font-size: 16px; }
+
+.records-list { background: #fff; border-radius: 12px; overflow: hidden; }
+.record-item {
+  display: flex; align-items: center; padding: 14px 16px;
+  border-bottom: 1px solid #f0f0f0; gap: 12px;
+}
+.record-item:last-child { border-bottom: none; }
+.record-score { font-size: 20px; font-weight: 700; color: #e74c3c; flex-shrink: 0; min-width: 60px; }
+.record-date { flex: 1; font-size: 13px; color: #999; }
+.record-delete {
+  width: 30px; height: 30px; border-radius: 50%; border: none;
+  background: #ffebee; color: #e74c3c; font-size: 14px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.record-delete:active { background: #ffcdd2; }
+.record-empty { text-align: center; padding: 40px; color: #bbb; font-size: 14px; }
+
+/* ═══════════════════════════════════════════════════════════
+   TEST MODAL
+   ═══════════════════════════════════════════════════════════ */
+.test-modal {
+  position: fixed; inset: 0; background: #000; z-index: 200;
+  display: none; flex-direction: column;
+}
+.test-modal.open { display: flex; }
+.test-video-wrap {
+  flex: 1; position: relative; overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+  background: #000;
+}
+.test-video-wrap video,
+.test-video-wrap canvas {
+  position: absolute; width: 100%; height: 100%; object-fit: cover;
+  transform: scaleX(-1);
+}
+.test-video-wrap canvas { z-index: 2; }
+.test-overlay {
+  position: absolute; inset: 0; z-index: 3; pointer-events: none;
+}
+.test-timer {
+  position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+  background: rgba(0,0,0,0.65); color: #fff; padding: 8px 20px;
+  border-radius: 20px; font-size: 18px; font-weight: 700; z-index: 5;
+  font-variant-numeric: tabular-nums;
+}
+.test-counter {
+  position: absolute; top: 20px; right: 20px;
+  background: rgba(0,0,0,0.65); color: #0f0; padding: 8px 16px;
+  border-radius: 20px; font-size: 18px; font-weight: 700; z-index: 5;
+}
+.test-prompt {
+  position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%);
+  color: #fff; font-size: 18px; font-weight: 600; z-index: 5;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.6); text-align: center;
+  white-space: nowrap;
+}
+.test-countdown {
+  position: absolute; inset: 0; display: flex; align-items: center;
+  justify-content: center; z-index: 6; pointer-events: none;
+}
+.test-countdown-text {
+  font-size: 100px; font-weight: 900; color: #fff;
+  text-shadow: 0 0 40px rgba(255,255,255,0.5);
+  animation: popIn 0.5s ease-out;
+}
+@keyframes popIn {
+  0% { transform: scale(1.8); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* Result overlay */
+.test-result {
+  position: absolute; inset: 0; z-index: 10;
+  display: none; flex-direction: column; align-items: center;
+  justify-content: center; background: rgba(0,0,0,0.85);
+}
+.test-result.show { display: flex; }
+.test-result h2 { font-size: 28px; color: #fff; margin-bottom: 20px; }
+.test-result .result-score {
+  font-size: 72px; font-weight: 900; color: #e74c3c; margin-bottom: 8px;
+}
+.test-result .result-rank {
+  font-size: 20px; color: #ffd700; margin-bottom: 30px;
+}
+.test-result .close-btn {
+  padding: 14px 50px; background: #e74c3c; color: #fff;
+  border: none; border-radius: 25px; font-size: 17px; cursor: pointer;
+  font-weight: 600;
+}
+.test-result .close-btn:active { transform: scale(0.95); }
+
+/* Close button for test modal (top-left) */
+.test-close {
+  position: absolute; top: 16px; left: 16px; z-index: 20;
+  width: 36px; height: 36px; border-radius: 50%;
+  background: rgba(255,255,255,0.2); color: #fff;
+  border: none; font-size: 20px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+
+/* Loading spinner */
+.spinner {
+  width: 28px; height: 28px; border: 3px solid rgba(255,255,255,0.3);
+  border-top-color: #fff; border-radius: 50%;
+  animation: spin 0.7s linear infinite; margin: 0 auto 10px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Toast */
+.toast {
+  position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+  background: #333; color: #fff; padding: 10px 24px; border-radius: 20px;
+  font-size: 14px; z-index: 999; opacity: 0; transition: opacity 0.3s;
+  pointer-events: none;
+}
+.toast.show { opacity: 1; }
+
+/* Hidden file input */
+#avatarFileInput { display: none; }
+
+/* Logout button */
+.btn-logout {
+  width: 100%; padding: 14px; border: none; border-radius: 12px;
+  font-size: 16px; font-weight: 600; cursor: pointer; transition: 0.2s;
+  background: #fff; color: #e74c3c; border: 2px solid #e74c3c;
+  text-align: center; margin-top: 6px;
+}
+.btn-logout:active { transform: scale(0.97); background: #ffebee; }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════
+   TOAST
+   ═══════════════════════════════════════════════════════ -->
+<div id="toast" class="toast"></div>
+
+<!-- ═══════════════════════════════════════════════════════
+   LOGIN PAGE
+   ═══════════════════════════════════════════════════════ -->
+<div id="loginPage" class="page auth-page active">
+  <div class="auth-card">
+    <div class="logo">67</div>
+    <h2>登录 67guy</h2>
+    <div class="error" id="loginError"></div>
+    <input type="text" id="loginNickname" placeholder="昵称" autocomplete="username">
+    <input type="password" id="loginPassword" placeholder="密码" autocomplete="current-password">
+    <button class="btn btn-primary" id="loginBtn">登 录</button>
+    <div class="link" id="goRegister">点我注册</div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+   REGISTER PAGE
+   ═══════════════════════════════════════════════════════ -->
+<div id="registerPage" class="page auth-page">
+  <div class="auth-card">
+    <div class="logo">67</div>
+    <h2>注册 67guy</h2>
+    <div class="error" id="registerError"></div>
+    <input type="text" id="regNickname" placeholder="昵称（不可重复）" autocomplete="off">
+    <input type="password" id="regPassword" placeholder="密码" autocomplete="new-password">
+    <button class="btn btn-primary" id="registerBtn">注 册</button>
+    <div class="link" id="goLogin">← 返回登录</div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+   MAIN APP
+   ═══════════════════════════════════════════════════════ -->
+<div id="mainApp" class="page">
+  <div class="main-app">
+
+    <!-- HOME TAB -->
+    <div id="homeTab" class="home-content">
+      <button class="big-red-btn" id="startTestBtn" title="开始测试">67</button>
+      <div class="section-title">🏆 全国排行榜</div>
+      <div class="leaderboard-list" id="leaderboardList">
+        <div class="lb-empty">加载中...</div>
+      </div>
+    </div>
+
+    <!-- MY TAB -->
+    <div id="myTab" class="my-content" style="display:none">
+      <div class="profile-section">
+        <div class="avatar-wrap">
+          <img class="avatar-img" id="myAvatar" src="" alt="头像"
+               onerror="this.style.display='none';document.getElementById('avatarPlaceholder').style.display='flex'">
+          <div id="avatarPlaceholder" style="width:90px;height:90px;border-radius:50%;background:#eee;display:flex;align-items:center;justify-content:center;font-size:40px;color:#ccc;border:3px solid #e74c3c;">👤</div>
+          <button class="avatar-upload-btn" id="avatarUploadBtn" title="上传头像">+</button>
+        </div>
+        <div class="profile-nickname" id="myNickname">--</div>
+        <div class="profile-highscore">最高成绩: <span id="myHighScore">0</span> 次</div>
+      </div>
+
+      <div class="section-title">📋 测试记录</div>
+      <div class="records-list" id="recordsList">
+        <div class="record-empty">暂无记录</div>
+      </div>
+      <button class="btn-logout" id="logoutBtn">🚪 退出登录</button>
+    </div>
+
+    <!-- BOTTOM NAV -->
+    <div class="bottom-nav">
+      <div class="nav-item active" data-tab="home">
+        <div class="icon">🏠</div>
+        <div class="label">首页</div>
+      </div>
+      <div class="nav-item" data-tab="my">
+        <div class="icon">👤</div>
+        <div class="label">我的</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+   TEST MODAL
+   ═══════════════════════════════════════════════════════ -->
+<div id="testModal" class="test-modal">
+  <button class="test-close" id="testCloseBtn">✕</button>
+  <div class="test-video-wrap" id="testVideoWrap">
+    <video id="testVideo" playsinline autoplay></video>
+    <canvas id="testCanvas"></canvas>
+    <div class="test-overlay">
+      <div class="test-timer" id="testTimer" style="display:none">剩余 60s</div>
+      <div class="test-counter" id="testCounter" style="display:none">次数: 0</div>
+      <div class="test-prompt" id="testPrompt">请将双手显示在屏幕中</div>
+    </div>
+    <div class="test-countdown" id="testCountdownWrap" style="display:none">
+      <div class="test-countdown-text" id="testCountdownText"></div>
+    </div>
+    <div class="test-result" id="testResult">
+      <h2>🎉 测试完成!</h2>
+      <div class="result-score" id="resultScore">0</div>
+      <div style="color:#fff;font-size:16px;">次</div>
+      <div class="result-rank" id="resultRank"></div>
+      <button class="close-btn" id="resultCloseBtn">关闭</button>
+    </div>
+  </div>
+</div>
+
+<!-- Hidden file input for avatar -->
+<input type="file" id="avatarFileInput" accept="image/*">
+
+<!-- MediaPipe Hands: all local files -->
+<script src="camera_utils.js"></script>
+<script src="hands/hands.js"></script>
+
+<!-- Supabase JS SDK (ESM) -->
+<script type="module">
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1'
+
+/* ═══════════════════════════════════════════════════════════
+   SUPABASE CONFIG —— 改成你自己的项目信息
+   在 app.supabase.com 创建项目后，Settings → API 里找到
+   ═══════════════════════════════════════════════════════════ */
+const SB_URL  = 'https://tbhwelacvwmssbgogxll.supabase.co';
+const SB_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRiaHdlbGFjdndtc3NiZ29neGxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY0NTQyMDEsImV4cCI6MjEwMjAzMDIwMX0.6DM9eJD625iuKnweBtsK0T-CnzORcI0pNKwiuIe-AKQ';
+const sb = createClient(SB_URL, SB_KEY, {
+  auth: { persistSession: true, autoRefreshToken: true }
+});
+
+/* ═══════════════════════════════════════════════════════════
+   GLOBAL STATE
+   ═══════════════════════════════════════════════════════════ */
+let currentUser = null; // { userId, nickname, avatar, highScore }
+
+/* ═══════════════════════════════════════════════════════════
+   HELPERS
+   ═══════════════════════════════════════════════════════════ */
+const $ = (sel) => document.querySelector(sel);
+const $$ = (sel) => document.querySelectorAll(sel);
+
+function toast(msg) {
+  const el = $('#toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.classList.remove('show'), 2000);
+}
+
+// 从昵称生成 ASCII 邮箱（Supabase Auth 不支持非 ASCII 字符）
+function nickToEmail(nick) {
+  let h = 0;
+  for (let i = 0; i < nick.length; i++) {
+    h = ((h << 5) - h) + nick.charCodeAt(i);
+    h |= 0;
+  }
+  return 'u' + Math.abs(h).toString(36) + '@67guy.info';
+}
+
+// ── Page navigation ─────────────────────────────────────
+function showPage(pageId) {
+  $$('.page').forEach(p => p.classList.remove('active'));
+  $(pageId).classList.add('active');
+}
+
+// ── Auto-login check (Supabase session) ─────────────────
+async function checkAutoLogin() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (session?.user) {
+    await loadCurrentUser(session.user);
+    showMainApp();
+  }
+}
+
+// 从 profiles 表加载当前用户信息
+async function loadCurrentUser(authUser) {
+  const { data: profile } = await sb.from('profiles')
+    .select('nickname, avatar_url, high_score')
+    .eq('id', authUser.id).single();
+
+  if (profile) {
+    currentUser = {
+      userId: authUser.id,
+      nickname: profile.nickname,
+      avatar: profile.avatar_url,
+      highScore: profile.high_score || 0
+    };
+    return;
+  }
+
+  // profile 不存在（旧版触发器失败），用 auth metadata 自动创建
+  const nickname = authUser.user_metadata?.nickname || '用户';
+  const { error: insertErr } = await sb.from('profiles')
+    .insert({ id: authUser.id, nickname, high_score: 0 });
+
+  if (!insertErr) {
+    currentUser = {
+      userId: authUser.id,
+      nickname,
+      avatar: null,
+      highScore: 0
+    };
+  }
+}
+
+// ── Page init ───────────────────────────────────────────
+checkAutoLogin();
+
+/* ═══════════════════════════════════════════════════════════
+   AUTH LOGIC (Supabase Auth)
+   ═══════════════════════════════════════════════════════════ */
+
+// ── Login ────────────────────────────────────────────────
+$('#loginBtn').addEventListener('click', async () => {
+  const nickname = $('#loginNickname').value.trim();
+  const password = $('#loginPassword').value;
+  if (!nickname) return toast('请输入昵称');
+  if (!password) return toast('请输入密码');
+  if (password.length < 6) return toast('密码至少需要 6 位');
+
+  $('#loginBtn').textContent = '登录中...';
+  $('#loginBtn').disabled = true;
+
+  const { data, error } = await sb.auth.signInWithPassword({
+    email: nickToEmail(nickname), password
+  });
+
+  $('#loginBtn').textContent = '登 录';
+  $('#loginBtn').disabled = false;
+
+  if (error) {
+    $('#loginError').textContent = error.status === 400
+      ? '昵称或密码错误' : error.message;
+  } else {
+    $('#loginError').textContent = '';
+    await loadCurrentUser(data.user);
+    showMainApp();
+  }
+});
+
+// Enter key to login
+$('#loginPassword').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') $('#loginBtn').click();
+});
+
+// ── Go to register ──────────────────────────────────────
+$('#goRegister').addEventListener('click', () => {
+  showPage('#registerPage');
+  $('#regNickname').value = '';
+  $('#regPassword').value = '';
+  $('#registerError').textContent = '';
+});
+
+// ── Register ────────────────────────────────────────────
+$('#registerBtn').addEventListener('click', async () => {
+  const nickname = $('#regNickname').value.trim();
+  const password = $('#regPassword').value;
+  if (!nickname) return toast('请输入昵称');
+  if (!password) return toast('请输入密码');
+  if (password.length < 6) return toast('密码至少需要 6 位');
+  if (nickname.length > 20) return toast('昵称不能超过 20 个字符');
+
+  $('#registerBtn').textContent = '注册中...';
+  $('#registerBtn').disabled = true;
+
+  // 1. 检查昵称是否被占用
+  const { data: existing } = await sb.from('profiles')
+    .select('id').eq('nickname', nickname).maybeSingle();
+
+  if (existing) {
+    $('#registerBtn').textContent = '注 册';
+    $('#registerBtn').disabled = false;
+    $('#registerError').textContent = '该昵称已被使用，请换一个';
+    return;
+  }
+
+  // 2. 注册
+  const { error } = await sb.auth.signUp({
+    email: nickToEmail(nickname),
+    password,
+    options: { data: { nickname } }
+  });
+
+  if (error) {
+    $('#registerBtn').textContent = '注 册';
+    $('#registerBtn').disabled = false;
+    $('#registerError').textContent = error.message;
+    return;
+  }
+
+  // 3. 注册成功后立即登录
+  const { data: loginData, error: loginErr } = await sb.auth.signInWithPassword({
+    email: nickToEmail(nickname), password
+  });
+
+  if (loginErr) {
+    $('#registerBtn').textContent = '注 册';
+    $('#registerBtn').disabled = false;
+    $('#registerError').textContent = '';
+    toast('注册成功！请先登录');
+    showPage('#loginPage');
+    return;
+  }
+
+  // 4. 手动插入 profile（触发器之前导致 500 已删除）
+  const { error: insertErr } = await sb.from('profiles')
+    .insert({ id: loginData.user.id, nickname, high_score: 0 });
+
+  if (insertErr) {
+    console.error('Profile insert error:', insertErr);
+    $('#registerBtn').textContent = '注 册';
+    $('#registerBtn').disabled = false;
+    $('#registerError').textContent = insertErr.message;
+    return;
+  }
+
+  $('#registerBtn').textContent = '注 册';
+  $('#registerBtn').disabled = false;
+  $('#registerError').textContent = '';
+  await loadCurrentUser(loginData.user);
+  showMainApp();
+});
+
+// ── Go back to login ────────────────────────────────────
+$('#goLogin').addEventListener('click', () => {
+  showPage('#loginPage');
+  $('#loginPassword').value = '';
+  $('#loginError').textContent = '';
+});
+
+
+/* ═══════════════════════════════════════════════════════════
+   MAIN APP INIT
+   ═══════════════════════════════════════════════════════════ */
+async function showMainApp() {
+  showPage('#mainApp');
+  $('#myNickname').textContent = currentUser.nickname;
+  updateAvatarDisplay();
+  $('#myHighScore').textContent = currentUser.highScore || 0;
+  loadLeaderboard();
+  loadMyRecords();
+  switchTab('home');
+}
+
+function updateAvatarDisplay() {
+  const avatarUrl = currentUser.avatar;
+  const img = $('#myAvatar');
+  const placeholder = $('#avatarPlaceholder');
+  if (avatarUrl) {
+    img.src = avatarUrl;
+    img.style.display = '';
+    placeholder.style.display = 'none';
+  } else {
+    img.style.display = 'none';
+    placeholder.style.display = 'flex';
+  }
+}
+
+// ── Bottom nav ──────────────────────────────────────────
+$$('.nav-item').forEach(el => {
+  el.addEventListener('click', () => {
+    const tab = el.dataset.tab;
+    switchTab(tab);
+  });
+});
+
+function switchTab(tab) {
+  $$('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.tab === tab));
+  $('#homeTab').style.display = tab === 'home' ? '' : 'none';
+  $('#myTab').style.display = tab === 'my' ? '' : 'none';
+  if (tab === 'home') loadLeaderboard();
+  if (tab === 'my') loadMyRecords();
+}
+
+// ── Logout ────────────────────────────────────────────────
+$('#logoutBtn').addEventListener('click', async () => {
+  await sb.auth.signOut();
+  currentUser = null;
+  showPage('#loginPage');
+  toast('已退出登录');
+});
+
+/* ═══════════════════════════════════════════════════════════
+   LEADERBOARD (Supabase)
+   ═══════════════════════════════════════════════════════════ */
+async function loadLeaderboard() {
+  const list = $('#leaderboardList');
+  list.innerHTML = '<div class="lb-empty">加载中...</div>';
+  try {
+    const { data: users, error } = await sb.from('profiles')
+      .select('nickname, avatar_url, high_score')
+      .gt('high_score', 0)
+      .order('high_score', { ascending: false })
+      .limit(100);
+
+    if (error) throw error;
+    if (!users || users.length === 0) {
+      list.innerHTML = '<div class="lb-empty">暂无排行数据</div>';
+      return;
+    }
+    list.innerHTML = users.map((u, i) => {
+      const rank = i + 1;
+      let rankClass = '';
+      let rankDisplay = rank;
+      if (rank === 1) { rankClass = 'top1'; rankDisplay = '🥇'; }
+      else if (rank === 2) { rankClass = 'top2'; rankDisplay = '🥈'; }
+      else if (rank === 3) { rankClass = 'top3'; rankDisplay = '🥉'; }
+
+      const avatarHtml = u.avatar_url
+        ? `<img class="lb-avatar" src="${u.avatar_url}" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><div class="lb-avatar" style="display:none;align-items:center;justify-content:center;font-size:22px;background:#f0f0f0;">👤</div>`
+        : '<div class="lb-avatar" style="display:flex;align-items:center;justify-content:center;font-size:22px;background:#f0f0f0;">👤</div>';
+
+      return `
+        <div class="lb-item">
+          <div class="lb-rank ${rankClass}">${rankDisplay}</div>
+          ${avatarHtml}
+          <div class="lb-nickname">${escapeHtml(u.nickname)}</div>
+          <div class="lb-score">${u.high_score} 次</div>
+        </div>`;
+    }).join('');
+  } catch (e) {
+    console.error('Leaderboard error:', e);
+    list.innerHTML = '<div class="lb-empty">加载失败</div>';
+  }
+}
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   MY RECORDS (Supabase)
+   ═══════════════════════════════════════════════════════════ */
+async function loadMyRecords() {
+  if (!currentUser) return;
+  const list = $('#recordsList');
+  list.innerHTML = '<div class="record-empty">加载中...</div>';
+  try {
+    const { data: records, error } = await sb.from('records')
+      .select('*').eq('user_id', currentUser.userId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    if (!records || records.length === 0) {
+      list.innerHTML = '<div class="record-empty">暂无测试记录</div>';
+      return;
+    }
+    list.innerHTML = records.map(r => `
+      <div class="record-item">
+        <div class="record-score">${r.score} 次</div>
+        <div class="record-date">${formatDate(r.created_at)}</div>
+        <button class="record-delete" data-id="${r.id}" title="删除">🗑</button>
+      </div>
+    `).join('');
+
+    // Bind delete buttons
+    list.querySelectorAll('.record-delete').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        if (!confirm('确定要删除这条记录吗？')) return;
+
+        // 删除记录
+        const { error: delErr } = await sb.from('records')
+          .delete().eq('id', btn.dataset.id);
+
+        if (delErr) { toast(delErr.message); return; }
+
+        toast('已删除');
+
+        // 重新计算最高分
+        await recalcHighScore();
+
+        // 刷新当前用户信息
+        await refreshCurrentUser();
+        loadMyRecords();
+      });
+    });
+  } catch (e) {
+    console.error('Records error:', e);
+    list.innerHTML = '<div class="record-empty">加载失败</div>';
+  }
+}
+
+// 重算最高分
+async function recalcHighScore() {
+  const { data: top } = await sb.from('records')
+    .select('score').eq('user_id', currentUser.userId)
+    .order('score', { ascending: false }).limit(1);
+
+  const newHigh = top && top.length > 0 ? top[0].score : 0;
+  if (newHigh !== currentUser.highScore) {
+    currentUser.highScore = newHigh;
+    await sb.from('profiles')
+      .update({ high_score: newHigh })
+      .eq('id', currentUser.userId);
+    $('#myHighScore').textContent = newHigh || 0;
+  }
+}
+
+// 刷新当前用户信息
+async function refreshCurrentUser() {
+  const { data: profile } = await sb.from('profiles')
+    .select('nickname, avatar_url, high_score')
+    .eq('id', currentUser.userId).single();
+  if (profile) {
+    currentUser.nickname = profile.nickname;
+    currentUser.avatar = profile.avatar_url;
+    currentUser.highScore = profile.high_score || 0;
+    $('#myHighScore').textContent = currentUser.highScore || 0;
+    updateAvatarDisplay();
+  }
+}
+
+function formatDate(isoStr) {
+  const d = new Date(isoStr);
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   AVATAR UPLOAD (Supabase Storage)
+   ═══════════════════════════════════════════════════════════ */
+$('#avatarUploadBtn').addEventListener('click', () => {
+  $('#avatarFileInput').click();
+});
+
+$('#avatarFileInput').addEventListener('change', async () => {
+  const file = $('#avatarFileInput').files[0];
+  if (!file) return;
+
+  if (file.size > 5 * 1024 * 1024) {
+    toast('头像文件不能超过 5MB');
+    return;
+  }
+
+  // 检查文件类型
+  const allowed = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/bmp'];
+  if (!allowed.includes(file.type)) {
+    toast('不支持的图片格式');
+    return;
+  }
+
+  try {
+    const ext = file.name.split('.').pop() || 'jpg';
+    const filePath = `${currentUser.userId}/avatar_${Date.now()}.${ext}`;
+
+    // 直接上传（upsert 覆盖同名文件）
+    const { error: uploadErr } = await sb.storage
+      .from('avatars').upload(filePath, file, { upsert: true });
+
+    if (uploadErr) {
+      console.error('Upload error:', uploadErr);
+      // 可能是 bucket 不存在，提示用户
+      if (uploadErr.message.includes('not found') || uploadErr.message.includes('bucket')) {
+        toast('存储桶未配置，请在 Supabase 运行 supabase-setup.sql');
+      } else {
+        toast('上传失败: ' + uploadErr.message);
+      }
+      return;
+    }
+
+    // 获取公开 URL
+    const { data: urlData } = sb.storage.from('avatars')
+      .getPublicUrl(filePath);
+
+    const publicUrl = urlData.publicUrl;
+
+    // 更新 profiles 表
+    const { error: updateErr } = await sb.from('profiles')
+      .update({ avatar_url: publicUrl }).eq('id', currentUser.userId);
+
+    if (updateErr) {
+      console.error('Profile update error:', updateErr);
+      toast('头像已上传但资料更新失败');
+      return;
+    }
+
+    // 更新本地状态
+    currentUser.avatar = publicUrl + '?t=' + Date.now();
+    updateAvatarDisplay();
+    toast('头像已更新');
+  } catch (e) {
+    console.error('Avatar upload error:', e);
+    toast('上传失败: ' + (e.message || '请检查网络'));
+  }
+
+  $('#avatarFileInput').value = '';
+});
+
+/* ═══════════════════════════════════════════════════════════
+   CAMERA TEST LOGIC (MediaPipe Hands — local WASM)
+
+   核心设计：
+   - Hands 实例全局只创建一次，永不 close()
+   - Emscripten WASM 模块的全局状态在 close() 后无法恢复
+   - 使用离屏 canvas 作为 send() 的图像源，避免视频元素
+     WebGL 纹理在换流时失效
+   ═══════════════════════════════════════════════════════════ */
+
+let handsInstance = null;
+let handsReady = false;     // WASM + 模型是否已就绪（全局一次性）
+let rafId = null;
+let testState = 'idle';     // idle | waiting | countdown | testing | finished
+let crossCount = 0;
+let testTimeLeft = 60;
+let testTimerInterval = null;
+let lastAboveState = null;
+let handLostFrames = 0;
+let handsDetectedReady = false;
+let countdownValue = 3;
+let canvasCtx = null;
+let videoEl = null;
+
+// 离屏 canvas：从 video 绘制一帧，再传给 handsInstance.send()
+// 避免 video element 直接作为 WebGL 纹理源时因换流导致崩溃
+let offscreenCanvas = null;
+let offscreenCtx = null;
+
+// ── Open test modal ─────────────────────────────────────
+$('#startTestBtn').addEventListener('click', () => { openTestModal(); });
+$('#testCloseBtn').addEventListener('click', () => { closeTestModal(); });
+$('#resultCloseBtn').addEventListener('click', () => { closeTestModal(); });
+
+async function openTestModal() {
+  if (!currentUser) return toast('请先登录');
+
+  // 停止上一次的 RAF 循环（但不关 handsInstance）
+  if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+
+  testState = 'waiting';
+  crossCount = 0; testTimeLeft = 60; lastAboveState = null;
+  handLostFrames = 0; handsDetectedReady = false; countdownValue = 3;
+
+  $('#testModal').classList.add('open');
+  $('#testTimer').style.display = 'none';
+  $('#testCounter').style.display = 'none';
+  $('#testPrompt').textContent = '请将双手显示在屏幕中';
+  $('#testPrompt').style.display = '';
+  $('#testCountdownWrap').style.display = 'none';
+  $('#testResult').classList.remove('show');
+  $('#testCounter').textContent = '次数: 0';
+
+  const canvas = $('#testCanvas');
+  canvasCtx = canvas.getContext('2d');
+  videoEl = $('#testVideo');
+
+  // 确保离屏 canvas 存在
+  if (!offscreenCanvas) {
+    offscreenCanvas = document.createElement('canvas');
+    offscreenCtx = offscreenCanvas.getContext('2d');
+  }
+
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }
+    });
+    await new Promise(r => { videoEl.onloadedmetadata = r; videoEl.srcObject = stream; });
+    await videoEl.play();
+    canvas.width = videoEl.videoWidth;
+    canvas.height = videoEl.videoHeight;
+    offscreenCanvas.width = videoEl.videoWidth;
+    offscreenCanvas.height = videoEl.videoHeight;
+    await initHands();
+  } catch (e) {
+    console.error('Camera error:', e);
+    $('#testPrompt').textContent = '⚠️ 无法打开摄像头，请检查浏览器权限';
+    $('#testPrompt').style.color = '#ff4444';
+  }
+}
+
+function closeTestModal() {
+  testState = 'idle';
+  if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+  if (videoEl && videoEl.srcObject) {
+    videoEl.srcObject.getTracks().forEach(t => t.stop());
+    videoEl.srcObject = null;
+  }
+  if (testTimerInterval) { clearInterval(testTimerInterval); testTimerInterval = null; }
+  $('#testModal').classList.remove('open');
+  if (currentUser) {
+    refreshCurrentUser();
+    loadLeaderboard();
+    loadMyRecords();
+  }
+}
+
+// ── Init MediaPipe Hands（全局只初始化一次，永不 close）──
+async function initHands() {
+  if (typeof Hands === 'undefined') {
+    $('#testPrompt').textContent = '⚠️ Hands.js 未加载，请刷新页面';
+    $('#testPrompt').style.color = '#ff4444';
+    return;
+  }
+
+  // 如果已经就绪，直接启动帧循环
+  if (handsReady && handsInstance) {
+    startFrameLoop();
+    return;
+  }
+
+  $('#testPrompt').textContent = 'AI 模型加载中…';
+  $('#testPrompt').style.color = '#fff';
+
+  // 只在第一次创建实例
+  if (!handsInstance) {
+    handsInstance = new Hands({
+      // Emscripten 从页面 URL 解析相对路径，本地和 GitHub Pages 通用
+      locateFile: (file) => `hands/${file}`
+    });
+    handsInstance.setOptions({
+      maxNumHands: 2,
+      modelComplexity: 1,
+      minDetectionConfidence: 0.5,
+      minTrackingConfidence: 0.5
+    });
+    handsInstance.onResults(onHandResults);
+  }
+
+  // 只在未初始化时调用 initialize()
+  if (!handsReady) {
+    try {
+      await handsInstance.initialize();
+      handsReady = true;
+    } catch(e) {
+      console.error('Hands init error:', e);
+      $('#testPrompt').textContent = '⚠️ AI 模型初始化失败，请刷新页面';
+      $('#testPrompt').style.color = '#ff4444';
+      return;
+    }
+  }
+
+  startFrameLoop();
+}
+
+function startFrameLoop() {
+  if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+  function frameLoop() {
+    if (testState === 'idle' || testState === 'finished') {
+      rafId = requestAnimationFrame(frameLoop);
+      return;
+    }
+    // 从 video 绘制一帧到离屏 canvas，再传给 MediaPipe
+    // 这样避免 video element 直接绑定 WebGL 纹理，
+    // 在 video.srcObject 换流后不会出现纹理失效导致 $malloc 崩溃
+    if (handsInstance && videoEl && videoEl.readyState >= 2 &&
+        offscreenCtx && offscreenCanvas) {
+      try {
+        offscreenCtx.drawImage(videoEl, 0, 0,
+          offscreenCanvas.width, offscreenCanvas.height);
+        handsInstance.send({ image: offscreenCanvas });
+      } catch(e) {
+        console.error('send error:', e);
+      }
+    }
+    rafId = requestAnimationFrame(frameLoop);
+  }
+  rafId = requestAnimationFrame(frameLoop);
+}
+
+// ── Hand detection callback ─────────────────────────────
+function onHandResults(results) {
+  if (testState === 'idle' || testState === 'finished') return;
+
+  // First callback after model loaded → show ready prompt
+  if (handsReady && $('#testPrompt').textContent === 'AI 模型加载中…') {
+    $('#testPrompt').textContent = '✅ 模型就绪，请将双手显示在屏幕中';
+  }
+
+  const w = $('#testCanvas').width;
+  const h = $('#testCanvas').height;
+  canvasCtx.clearRect(0, 0, w, h);
+
+  const landmarks = results.multiHandLandmarks;
+  const numHands = landmarks ? landmarks.length : 0;
+
+  if (landmarks && numHands > 0) {
+    landmarks.forEach(hand => {
+      const wrist = hand[0];
+      const x = wrist.x * w, y = wrist.y * h;
+
+      // Green glow
+      canvasCtx.beginPath();
+      canvasCtx.arc(x, y, 24, 0, 2 * Math.PI);
+      canvasCtx.fillStyle = 'rgba(0,255,0,0.25)';
+      canvasCtx.fill();
+
+      // Green dot
+      canvasCtx.beginPath();
+      canvasCtx.arc(x, y, 12, 0, 2 * Math.PI);
+      canvasCtx.fillStyle = '#00ff00';
+      canvasCtx.fill();
+      canvasCtx.strokeStyle = 'rgba(0,200,0,0.9)';
+      canvasCtx.lineWidth = 3;
+      canvasCtx.stroke();
+
+      // Hand skeleton
+      canvasCtx.strokeStyle = 'rgba(0,255,0,0.25)';
+      canvasCtx.lineWidth = 1;
+      const conn = [
+        [0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],
+        [0,9],[9,10],[10,11],[11,12],[0,13],[13,14],[14,15],[15,16],
+        [0,17],[17,18],[18,19],[19,20],[5,9],[9,13],[13,17]
+      ];
+      conn.forEach(([i, j]) => {
+        canvasCtx.beginPath();
+        canvasCtx.moveTo(hand[i].x * w, hand[i].y * h);
+        canvasCtx.lineTo(hand[j].x * w, hand[j].y * h);
+        canvasCtx.stroke();
+      });
+    });
+  }
+
+  // State transitions
+  if (numHands === 2 && testState === 'waiting') {
+    handsDetectedReady = true;
+    $('#testPrompt').textContent = '已识别到双手 ✓';
+    setTimeout(() => {
+      if (testState === 'waiting' && handsDetectedReady) startCountdown();
+    }, 600);
+  } else if (numHands < 2 && testState === 'waiting') {
+    handsDetectedReady = false;
+    $('#testPrompt').textContent = numHands === 1 ? '已识别一只手，请伸出另一只' : '请将双手显示在屏幕中';
+  }
+
+  // Crossing detection
+  if (numHands === 2 && testState === 'testing') {
+    detectCrossing(results.multiHandedness, landmarks);
+  }
+}
+
+// ── Crossing detection ──────────────────────────────────
+function detectCrossing(handedness, landmarks) {
+  let leftY = null, rightY = null;
+
+  if (handedness && handedness.length === 2) {
+    handedness.forEach((h, i) => {
+      if (h.label === 'Left') leftY = landmarks[i][0].y;
+      else if (h.label === 'Right') rightY = landmarks[i][0].y;
+    });
+  }
+
+  if ((leftY === null || rightY === null) && landmarks.length === 2) {
+    const w0x = landmarks[0][0].x, w1x = landmarks[1][0].x;
+    if (w0x < w1x) { rightY = landmarks[0][0].y; leftY = landmarks[1][0].y; }
+    else { leftY = landmarks[0][0].y; rightY = landmarks[1][0].y; }
+  }
+
+  if (leftY === null || rightY === null) {
+    handLostFrames++;
+    if (handLostFrames > 30) lastAboveState = null;
+    return;
+  }
+
+  handLostFrames = 0;
+  const diff = leftY - rightY;
+  if (Math.abs(diff) < 0.05) return;
+
+  const currentAbove = diff < 0 ? 'left' : 'right';
+  if (lastAboveState !== null && currentAbove !== lastAboveState) {
+    crossCount++;
+    $('#testCounter').textContent = `次数: ${crossCount}`;
+  }
+  lastAboveState = currentAbove;
+}
+
+// ── Countdown ───────────────────────────────────────────
+function startCountdown() {
+  testState = 'countdown'; countdownValue = 3;
+  $('#testPrompt').style.display = 'none';
+  $('#testCountdownWrap').style.display = 'flex';
+  function tick() {
+    if (testState !== 'countdown') return;
+    if (countdownValue <= 0) {
+      $('#testCountdownWrap').style.display = 'none';
+      $('#testCountdownText').textContent = '';
+      startTesting();
+      return;
+    }
+    $('#testCountdownText').textContent = countdownValue;
+    countdownValue--;
+    setTimeout(tick, 1000);
+  }
+  tick();
+}
+
+// ── Start test ──────────────────────────────────────────
+function startTesting() {
+  testState = 'testing'; crossCount = 0; testTimeLeft = 60; lastAboveState = null;
+  $('#testTimer').style.display = '';
+  $('#testCounter').style.display = '';
+  $('#testTimer').textContent = `剩余 ${testTimeLeft}s`;
+  $('#testCounter').textContent = '次数: 0';
+  testTimerInterval = setInterval(() => {
+    testTimeLeft--;
+    $('#testTimer').textContent = `剩余 ${testTimeLeft}s`;
+    if (testTimeLeft <= 0) endTest();
+  }, 1000);
+}
+
+// ── End test ────────────────────────────────────────────
+async function endTest() {
+  testState = 'finished';
+  // handsInstance 保持不关，下次测试直接复用
+  if (testTimerInterval) { clearInterval(testTimerInterval); testTimerInterval = null; }
+  if (videoEl && videoEl.srcObject) {
+    videoEl.srcObject.getTracks().forEach(t => t.stop());
+  }
+  $('#testTimer').style.display = 'none';
+  $('#testCounter').style.display = 'none';
+  $('#testCountdownWrap').style.display = 'none';
+
+  let rank = '--';
+
+  try {
+    // 1. 插入记录
+    const { data: inserted, error: insertErr } = await sb.from('records')
+      .insert({ user_id: currentUser.userId, score: crossCount })
+      .select('id').single();
+
+    if (insertErr) throw insertErr;
+
+    // 2. 裁剪记录（保留最多 50 条，按最高分）
+    const { count } = await sb.from('records')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', currentUser.userId);
+
+    if (count > 50) {
+      const excess = count - 50;
+      const { data: toDelete } = await sb.from('records')
+        .select('id').eq('user_id', currentUser.userId)
+        .order('score', { ascending: true }).limit(excess);
+      if (toDelete && toDelete.length > 0) {
+        await sb.from('records').delete()
+          .in('id', toDelete.map(r => r.id));
+      }
+    }
+
+    // 3. 更新最高分
+    if (crossCount > (currentUser.highScore || 0)) {
+      currentUser.highScore = crossCount;
+      await sb.from('profiles')
+        .update({ high_score: crossCount })
+        .eq('id', currentUser.userId);
+    }
+
+    // 4. 计算排名
+    const { count: higherCount } = await sb.from('profiles')
+      .select('*', { count: 'exact', head: true })
+      .gt('high_score', currentUser.highScore || 0);
+    rank = `第 ${(higherCount || 0) + 1} 名`;
+
+  } catch (e) {
+    console.error('Save record error:', e);
+  }
+
+  $('#resultScore').textContent = crossCount;
+  $('#resultRank').textContent = `全国排名: ${rank}`;
+  $('#testResult').classList.add('show');
+}
+</script>
+
+</body>
+</html>
