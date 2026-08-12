@@ -894,9 +894,9 @@ let testState = 'idle';     // idle | waiting | countdown | testing | finished
 let crossCount = 0;
 let testTimeLeft = 60;
 let testTimerInterval = null;
-let lastAboveState = null;
+let middleRaised = false;
 let handLostFrames = 0;
-let handsDetectedReady = false;
+let middleDetectedReady = false;
 let countdownValue = 3;
 let canvasCtx = null;
 let videoEl = null;
@@ -918,13 +918,13 @@ async function openTestModal() {
   if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
 
   testState = 'waiting';
-  crossCount = 0; testTimeLeft = 60; lastAboveState = null;
-  handLostFrames = 0; handsDetectedReady = false; countdownValue = 3;
+  crossCount = 0; testTimeLeft = 60; middleRaised = false;
+  handLostFrames = 0; middleDetectedReady = false; countdownValue = 3;
 
   $('#testModal').classList.add('open');
   $('#testTimer').style.display = 'none';
   $('#testCounter').style.display = 'none';
-  $('#testPrompt').textContent = '请将双手显示在屏幕中';
+  $('#testPrompt').textContent = '请将一只手展示在屏幕中';
   $('#testPrompt').style.display = '';
   $('#testCountdownWrap').style.display = 'none';
   $('#testResult').classList.remove('show');
@@ -1053,7 +1053,7 @@ function onHandResults(results) {
 
   // First callback after model loaded → show ready prompt
   if (handsReady && $('#testPrompt').textContent === 'AI 模型加载中…') {
-    $('#testPrompt').textContent = '✅ 模型就绪，请将双手显示在屏幕中';
+    $('#testPrompt').textContent = '✅ 模型就绪，请将手展示在屏幕中';
   }
 
   const w = $('#testCanvas').width;
@@ -1065,26 +1065,43 @@ function onHandResults(results) {
 
   if (landmarks && numHands > 0) {
     landmarks.forEach(hand => {
-      const wrist = hand[0];
-      const x = wrist.x * w, y = wrist.y * h;
+      // ── Middle finger highlight ─────────────────
+      const mcp  = hand[9];   // 中指根部
+      const pip  = hand[10];  // 中指第二关节
+      const tip  = hand[12];  // 中指指尖
 
-      // Green glow
+      const isRaised = tip.y < pip.y && pip.y < mcp.y;
+      const color = isRaised ? '#ff0000' : '#00ff00';
+
+      // Middle finger glow
+      const mx = tip.x * w, my = tip.y * h;
       canvasCtx.beginPath();
-      canvasCtx.arc(x, y, 24, 0, 2 * Math.PI);
-      canvasCtx.fillStyle = 'rgba(0,255,0,0.25)';
+      canvasCtx.arc(mx, my, 30, 0, 2 * Math.PI);
+      canvasCtx.fillStyle = isRaised ? 'rgba(255,0,0,0.4)' : 'rgba(0,255,0,0.25)';
       canvasCtx.fill();
 
-      // Green dot
+      // Middle finger dot
       canvasCtx.beginPath();
-      canvasCtx.arc(x, y, 12, 0, 2 * Math.PI);
-      canvasCtx.fillStyle = '#00ff00';
+      canvasCtx.arc(mx, my, 14, 0, 2 * Math.PI);
+      canvasCtx.fillStyle = color;
       canvasCtx.fill();
-      canvasCtx.strokeStyle = 'rgba(0,200,0,0.9)';
+      canvasCtx.strokeStyle = isRaised ? 'rgba(200,0,0,0.9)' : 'rgba(0,200,0,0.9)';
       canvasCtx.lineWidth = 3;
       canvasCtx.stroke();
 
-      // Hand skeleton
-      canvasCtx.strokeStyle = 'rgba(0,255,0,0.25)';
+      // Middle finger line (MCP → PIP → DIP → TIP)
+      canvasCtx.strokeStyle = color;
+      canvasCtx.lineWidth = 3;
+      [9,10,11,12].reduce((a, b) => {
+        canvasCtx.beginPath();
+        canvasCtx.moveTo(hand[a].x * w, hand[a].y * h);
+        canvasCtx.lineTo(hand[b].x * w, hand[b].y * h);
+        canvasCtx.stroke();
+        return b;
+      });
+
+      // Hand skeleton (dim)
+      canvasCtx.strokeStyle = 'rgba(255,255,255,0.15)';
       canvasCtx.lineWidth = 1;
       const conn = [
         [0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],
@@ -1100,57 +1117,45 @@ function onHandResults(results) {
     });
   }
 
-  // State transitions
-  if (numHands === 2 && testState === 'waiting') {
-    handsDetectedReady = true;
-    $('#testPrompt').textContent = '已识别到双手 ✓';
+  // ── State: Waiting for a hand ─────────────────────────
+  if (numHands >= 1 && testState === 'waiting') {
+    middleDetectedReady = true;
+    $('#testPrompt').textContent = '已识别到手掌 ✓';
     setTimeout(() => {
-      if (testState === 'waiting' && handsDetectedReady) startCountdown();
+      if (testState === 'waiting' && middleDetectedReady) startCountdown();
     }, 600);
-  } else if (numHands < 2 && testState === 'waiting') {
-    handsDetectedReady = false;
-    $('#testPrompt').textContent = numHands === 1 ? '已识别一只手，请伸出另一只' : '请将双手显示在屏幕中';
+  } else if (numHands === 0 && testState === 'waiting') {
+    middleDetectedReady = false;
+    $('#testPrompt').textContent = '请将一只手展示在屏幕中';
   }
 
-  // Crossing detection
-  if (numHands === 2 && testState === 'testing') {
-    detectCrossing(results.multiHandedness, landmarks);
+  // ── Middle finger detection ───────────────────────────
+  if (numHands >= 1 && testState === 'testing') {
+    detectMiddleFinger(landmarks);
   }
 }
 
-// ── Crossing detection ──────────────────────────────────
-function detectCrossing(handedness, landmarks) {
-  let leftY = null, rightY = null;
+// ── Middle finger detection ────────────────────────────
+function detectMiddleFinger(landmarks) {
+  let anyRaised = false;
 
-  if (handedness && handedness.length === 2) {
-    handedness.forEach((h, i) => {
-      if (h.label === 'Left') leftY = landmarks[i][0].y;
-      else if (h.label === 'Right') rightY = landmarks[i][0].y;
-    });
+  for (const hand of landmarks) {
+    // 中指竖起: 指尖高于第二关节，第二关节高于根部
+    const tip_y = hand[12].y;
+    const pip_y = hand[10].y;
+    const mcp_y = hand[9].y;
+
+    if (tip_y < pip_y && pip_y < mcp_y) {
+      anyRaised = true;
+      break;
+    }
   }
 
-  if ((leftY === null || rightY === null) && landmarks.length === 2) {
-    const w0x = landmarks[0][0].x, w1x = landmarks[1][0].x;
-    if (w0x < w1x) { rightY = landmarks[0][0].y; leftY = landmarks[1][0].y; }
-    else { leftY = landmarks[0][0].y; rightY = landmarks[1][0].y; }
-  }
-
-  if (leftY === null || rightY === null) {
-    handLostFrames++;
-    if (handLostFrames > 30) lastAboveState = null;
-    return;
-  }
-
-  handLostFrames = 0;
-  const diff = leftY - rightY;
-  if (Math.abs(diff) < 0.05) return;
-
-  const currentAbove = diff < 0 ? 'left' : 'right';
-  if (lastAboveState !== null && currentAbove !== lastAboveState) {
+  if (anyRaised && !middleRaised) {
     crossCount++;
     $('#testCounter').textContent = `次数: ${crossCount}`;
   }
-  lastAboveState = currentAbove;
+  middleRaised = anyRaised;
 }
 
 // ── Countdown ───────────────────────────────────────────
@@ -1175,7 +1180,7 @@ function startCountdown() {
 
 // ── Start test ──────────────────────────────────────────
 function startTesting() {
-  testState = 'testing'; crossCount = 0; testTimeLeft = 60; lastAboveState = null;
+  testState = 'testing'; crossCount = 0; testTimeLeft = 60; middleRaised = false;
   $('#testTimer').style.display = '';
   $('#testCounter').style.display = '';
   $('#testTimer').textContent = `剩余 ${testTimeLeft}s`;
@@ -1194,6 +1199,7 @@ async function endTest() {
   if (testTimerInterval) { clearInterval(testTimerInterval); testTimerInterval = null; }
   if (videoEl && videoEl.srcObject) {
     videoEl.srcObject.getTracks().forEach(t => t.stop());
+    videoEl.srcObject = null;
   }
   $('#testTimer').style.display = 'none';
   $('#testCounter').style.display = 'none';
