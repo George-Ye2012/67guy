@@ -1,0 +1,21 @@
+# ── 敏感配置（Supabase 密钥等）──
+# 如果 index.html 包含真实密钥，建议不要提交
+# public/index.html
+
+# ── 旧后端数据（已迁移到 Supabase）──
+data/
+server.js
+logs/
+*.log
+
+# ── 部署产物 ──
+.vercel
+node_modules/
+
+# ── 系统文件 ──
+.env
+.env.local
+.DS_Store
+Thumbs.db
+
+.vercel
