@@ -145,7 +145,28 @@ body {
   box-shadow: 0 2px 8px rgba(0,0,0,0.2);
 }
 .avatar-upload-btn:active { transform: scale(0.9); }
-.profile-nickname { font-size: 18px; font-weight: 700; }
+.profile-nickname { font-size: 18px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px; }
+.nickname-edit-btn {
+  background: none; border: none; font-size: 16px; cursor: pointer;
+  color: #ccc; padding: 2px 4px; transition: 0.2s;
+}
+.nickname-edit-btn:hover { color: #e74c3c; }
+.nickname-edit-row {
+  display: flex; gap: 8px; justify-content: center; margin-bottom: 8px;
+}
+.nickname-edit-row input {
+  padding: 6px 12px; border: 2px solid #e0e0e0; border-radius: 8px;
+  font-size: 14px; outline: none; width: 140px;
+}
+.nickname-edit-row input:focus { border-color: #e74c3c; }
+.nickname-save-btn, .nickname-cancel-btn {
+  padding: 6px 12px; border: none; border-radius: 8px;
+  font-size: 13px; cursor: pointer; transition: 0.2s;
+}
+.nickname-save-btn { background: #e74c3c; color: #fff; }
+.nickname-save-btn:active { transform: scale(0.95); }
+.nickname-cancel-btn { background: #eee; color: #666; }
+.nickname-cancel-btn:active { transform: scale(0.95); }
 .profile-highscore { font-size: 14px; color: #999; margin-top: 4px; }
 .profile-highscore span { color: #e74c3c; font-weight: 700; font-size: 16px; }
 
@@ -340,7 +361,15 @@ body {
           <div id="avatarPlaceholder" style="width:90px;height:90px;border-radius:50%;background:#eee;display:flex;align-items:center;justify-content:center;font-size:40px;color:#ccc;border:3px solid #e74c3c;">👤</div>
           <button class="avatar-upload-btn" id="avatarUploadBtn" title="上传头像">+</button>
         </div>
-        <div class="profile-nickname" id="myNickname">--</div>
+        <div class="profile-nickname">
+          <span id="myNickname">--</span>
+          <button class="nickname-edit-btn" id="nicknameEditBtn" title="修改昵称">✎</button>
+        </div>
+        <div class="nickname-edit-row" id="nicknameEditRow" style="display:none">
+          <input type="text" id="nicknameEditInput" placeholder="新昵称" maxlength="20">
+          <button class="nickname-save-btn" id="nicknameSaveBtn">保存</button>
+          <button class="nickname-cancel-btn" id="nicknameCancelBtn">取消</button>
+        </div>
         <div class="profile-highscore">最高成绩: <span id="myHighScore">0</span> 次</div>
       </div>
 
@@ -875,6 +904,69 @@ $('#avatarFileInput').addEventListener('change', async () => {
   }
 
   $('#avatarFileInput').value = '';
+});
+
+/* ═══════════════════════════════════════════════════════════
+   NICKNAME EDIT
+   ═══════════════════════════════════════════════════════════ */
+$('#nicknameEditBtn').addEventListener('click', () => {
+  $('#myNickname').parentElement.style.display = 'none';
+  $('#nicknameEditRow').style.display = 'flex';
+  $('#nicknameEditInput').value = currentUser.nickname;
+  $('#nicknameEditInput').focus();
+});
+
+$('#nicknameCancelBtn').addEventListener('click', () => {
+  $('#myNickname').parentElement.style.display = '';
+  $('#nicknameEditRow').style.display = 'none';
+});
+
+$('#nicknameSaveBtn').addEventListener('click', async () => {
+  const newNick = $('#nicknameEditInput').value.trim();
+  if (!newNick) return toast('昵称不能为空');
+  if (newNick === currentUser.nickname) {
+    $('#myNickname').parentElement.style.display = '';
+    $('#nicknameEditRow').style.display = 'none';
+    return;
+  }
+  if (newNick.length > 20) return toast('昵称不能超过 20 个字符');
+
+  $('#nicknameSaveBtn').textContent = '保存中…';
+  $('#nicknameSaveBtn').disabled = true;
+
+  // 检查重复
+  const { data: existing } = await sb.from('profiles')
+    .select('id').eq('nickname', newNick).maybeSingle();
+
+  if (existing) {
+    $('#nicknameSaveBtn').textContent = '保存';
+    $('#nicknameSaveBtn').disabled = false;
+    return toast('该昵称已被使用，请换一个');
+  }
+
+  // 更新 profiles
+  const { error } = await sb.from('profiles')
+    .update({ nickname: newNick }).eq('id', currentUser.userId);
+
+  if (error) {
+    $('#nicknameSaveBtn').textContent = '保存';
+    $('#nicknameSaveBtn').disabled = false;
+    return toast(error.message);
+  }
+
+  // 更新本地状态
+  currentUser.nickname = newNick;
+  $('#myNickname').textContent = newNick;
+  $('#myNickname').parentElement.style.display = '';
+  $('#nicknameEditRow').style.display = 'none';
+  $('#nicknameSaveBtn').textContent = '保存';
+  $('#nicknameSaveBtn').disabled = false;
+  toast('昵称已更新');
+});
+
+// Enter key to save
+$('#nicknameEditInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') $('#nicknameSaveBtn').click();
 });
 
 /* ═══════════════════════════════════════════════════════════
