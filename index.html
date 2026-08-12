@@ -1086,8 +1086,8 @@ async function initHands() {
   // 只在第一次创建实例
   if (!handsInstance) {
     handsInstance = new Hands({
-      // Emscripten 从页面 URL 解析相对路径，本地和 GitHub Pages 通用
-      locateFile: (file) => `hands/${file}`
+      // jsdelivr CDN 国内有节点，比 GitHub Pages 快很多
+      locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240/${file}`
     });
     handsInstance.setOptions({
       maxNumHands: 2,
