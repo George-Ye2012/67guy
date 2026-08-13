@@ -986,8 +986,7 @@ let testState = 'idle';     // idle | waiting | countdown | testing | finished
 let crossCount = 0;
 let testTimeLeft = 60;
 let testTimerInterval = null;
-let baselineY = null;      // 中指指尖的参考 Y（归一化 0-1）
-let swingState = 'down';   // 'down' | 'up'
+let lastAboveState = null; // 'hand0' | 'hand1' 记录哪只手的中指指尖在上
 let handLostFrames = 0;
 let middleDetectedReady = false;
 let countdownValue = 3;
@@ -1011,13 +1010,13 @@ async function openTestModal() {
   if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
 
   testState = 'waiting';
-  crossCount = 0; testTimeLeft = 60; baselineY = null; swingState = 'down';
+  crossCount = 0; testTimeLeft = 60; lastAboveState = null;
   handLostFrames = 0; middleDetectedReady = false; countdownValue = 3;
 
   $('#testModal').classList.add('open');
   $('#testTimer').style.display = 'none';
   $('#testCounter').style.display = 'none';
-  $('#testPrompt').textContent = '请将一只手展示在屏幕中';
+  $('#testPrompt').textContent = '请将双手展示在屏幕中';
   $('#testPrompt').style.display = '';
   $('#testCountdownWrap').style.display = 'none';
   $('#testResult').classList.remove('show');
@@ -1146,7 +1145,7 @@ function onHandResults(results) {
 
   // First callback after model loaded → show ready prompt
   if (handsReady && $('#testPrompt').textContent === 'AI 模型加载中…') {
-    $('#testPrompt').textContent = '✅ 模型就绪，请将手展示在屏幕中';
+    $('#testPrompt').textContent = '✅ 模型就绪，请将双手展示在屏幕中';
   }
 
   const w = $('#testCanvas').width;
@@ -1157,28 +1156,29 @@ function onHandResults(results) {
   const numHands = landmarks ? landmarks.length : 0;
 
   if (landmarks && numHands > 0) {
-    landmarks.forEach(hand => {
+    landmarks.forEach((hand, idx) => {
       // ── Middle finger highlight (tracking point) ──
       const tip  = hand[12];  // 中指指尖
+      const color = idx === 0 ? '#00ff00' : '#ffaa00';  // 两只手不同颜色
 
       // Middle finger glow
       const mx = tip.x * w, my = tip.y * h;
       canvasCtx.beginPath();
       canvasCtx.arc(mx, my, 30, 0, 2 * Math.PI);
-      canvasCtx.fillStyle = 'rgba(0,255,0,0.25)';
+      canvasCtx.fillStyle = idx === 0 ? 'rgba(0,255,0,0.25)' : 'rgba(255,170,0,0.25)';
       canvasCtx.fill();
 
       // Middle finger dot
       canvasCtx.beginPath();
       canvasCtx.arc(mx, my, 14, 0, 2 * Math.PI);
-      canvasCtx.fillStyle = '#00ff00';
+      canvasCtx.fillStyle = color;
       canvasCtx.fill();
-      canvasCtx.strokeStyle = 'rgba(0,200,0,0.9)';
+      canvasCtx.strokeStyle = color;
       canvasCtx.lineWidth = 3;
       canvasCtx.stroke();
 
       // Middle finger line (MCP → PIP → DIP → TIP)
-      canvasCtx.strokeStyle = '#00ff00';
+      canvasCtx.strokeStyle = color;
       canvasCtx.lineWidth = 3;
       [9,10,11,12].reduce((a, b) => {
         canvasCtx.beginPath();
@@ -1206,54 +1206,39 @@ function onHandResults(results) {
   }
 
   // ── State: Waiting for a hand ─────────────────────────
-  if (numHands >= 1 && testState === 'waiting') {
+  if (numHands === 2 && testState === 'waiting') {
     middleDetectedReady = true;
-    $('#testPrompt').textContent = '已识别到手掌 ✓';
+    $('#testPrompt').textContent = '已识别到双手 ✓';
     setTimeout(() => {
       if (testState === 'waiting' && middleDetectedReady) startCountdown();
     }, 600);
-  } else if (numHands === 0 && testState === 'waiting') {
+  } else if (numHands < 2 && testState === 'waiting') {
     middleDetectedReady = false;
-    $('#testPrompt').textContent = '请将一只手展示在屏幕中';
+    $('#testPrompt').textContent = numHands === 1 ? '已识别一只手，请伸出另一只' : '请将双手展示在屏幕中';
   }
 
-  // ── Middle finger detection ───────────────────────────
-  if (numHands >= 1 && testState === 'testing') {
-    detectMiddleFinger(landmarks);
+  // ── Crossing detection ────────────────────────────────
+  if (numHands === 2 && testState === 'testing') {
+    detectCrossing(landmarks);
   }
 }
 
-// ── Up-down swing detection (中指指尖上下摆动计数) ──────
-function detectMiddleFinger(landmarks) {
-  const hand = landmarks[0];
-  if (!hand) return;
+// ── Crossing detection (两个中指指尖纵坐标交错计数) ──────
+function detectCrossing(landmarks) {
+  if (landmarks.length !== 2) return;
 
-  const tipY = hand[12].y;   // 中指指尖 Y
-  const mcp  = hand[9];      // 中指根部
-  const wrist = hand[0];     // 手腕
+  const y0 = landmarks[0][12].y;  // 手 0 中指指尖
+  const y1 = landmarks[1][12].y;  // 手 1 中指指尖
 
-  // 用手掌大小（手腕到中指根）作为阈值参考，自适应距离
-  const handSize = Math.hypot(mcp.x - wrist.x, mcp.y - wrist.y) || 0.15;
+  const diff = y0 - y1;
+  if (Math.abs(diff) < 0.05) return;  // 距离太近，忽略抖动
 
-  if (baselineY === null) {
-    baselineY = tipY;
-    return;
-  }
-
-  const UP_THRESHOLD   = handSize * 0.5;  // 向上移动半个手掌大小
-  const DOWN_THRESHOLD = handSize * 0.3;  // 向下移动 1/3 手掌大小
-
-  if (swingState === 'down' && (baselineY - tipY) > UP_THRESHOLD) {
-    // 手向上摆动到位 → 计数 +1
+  const currentAbove = diff < 0 ? 'hand0' : 'hand1';
+  if (lastAboveState !== null && currentAbove !== lastAboveState) {
     crossCount++;
     $('#testCounter').textContent = `次数: ${crossCount}`;
-    swingState = 'up';
-    baselineY = tipY;
-  } else if (swingState === 'up' && (tipY - baselineY) > DOWN_THRESHOLD) {
-    // 手向下摆动复位 → 准备下一次
-    swingState = 'down';
-    baselineY = tipY;
   }
+  lastAboveState = currentAbove;
 }
 
 // ── Countdown ───────────────────────────────────────────
@@ -1278,7 +1263,7 @@ function startCountdown() {
 
 // ── Start test ──────────────────────────────────────────
 function startTesting() {
-  testState = 'testing'; crossCount = 0; testTimeLeft = 60; baselineY = null; swingState = 'down';
+  testState = 'testing'; crossCount = 0; testTimeLeft = 60; lastAboveState = null;
   $('#testTimer').style.display = '';
   $('#testCounter').style.display = '';
   $('#testTimer').textContent = `剩余 ${testTimeLeft}s`;
