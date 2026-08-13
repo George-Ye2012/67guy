@@ -1231,7 +1231,7 @@ function detectCrossing(landmarks) {
   const y1 = landmarks[1][12].y;  // 手 1 中指指尖
 
   const diff = y0 - y1;
-  if (Math.abs(diff) < 0.05) return;  // 距离太近，忽略抖动
+  if (Math.abs(diff) < 0.01) return;  // 极小死区，仅防手抖，基本一交错就计数
 
   const currentAbove = diff < 0 ? 'hand0' : 'hand1';
   if (lastAboveState !== null && currentAbove !== lastAboveState) {
