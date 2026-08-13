@@ -986,7 +986,8 @@ let testState = 'idle';     // idle | waiting | countdown | testing | finished
 let crossCount = 0;
 let testTimeLeft = 60;
 let testTimerInterval = null;
-let middleRaised = false;
+let baselineY = null;      // 中指指尖的参考 Y（归一化 0-1）
+let swingState = 'down';   // 'down' | 'up'
 let handLostFrames = 0;
 let middleDetectedReady = false;
 let countdownValue = 3;
@@ -1010,7 +1011,7 @@ async function openTestModal() {
   if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
 
   testState = 'waiting';
-  crossCount = 0; testTimeLeft = 60; middleRaised = false;
+  crossCount = 0; testTimeLeft = 60; baselineY = null; swingState = 'down';
   handLostFrames = 0; middleDetectedReady = false; countdownValue = 3;
 
   $('#testModal').classList.add('open');
@@ -1157,32 +1158,27 @@ function onHandResults(results) {
 
   if (landmarks && numHands > 0) {
     landmarks.forEach(hand => {
-      // ── Middle finger highlight ─────────────────
-      const mcp  = hand[9];   // 中指根部
-      const pip  = hand[10];  // 中指第二关节
+      // ── Middle finger highlight (tracking point) ──
       const tip  = hand[12];  // 中指指尖
-
-      const isRaised = tip.y < pip.y && pip.y < mcp.y;
-      const color = isRaised ? '#ff0000' : '#00ff00';
 
       // Middle finger glow
       const mx = tip.x * w, my = tip.y * h;
       canvasCtx.beginPath();
       canvasCtx.arc(mx, my, 30, 0, 2 * Math.PI);
-      canvasCtx.fillStyle = isRaised ? 'rgba(255,0,0,0.4)' : 'rgba(0,255,0,0.25)';
+      canvasCtx.fillStyle = 'rgba(0,255,0,0.25)';
       canvasCtx.fill();
 
       // Middle finger dot
       canvasCtx.beginPath();
       canvasCtx.arc(mx, my, 14, 0, 2 * Math.PI);
-      canvasCtx.fillStyle = color;
+      canvasCtx.fillStyle = '#00ff00';
       canvasCtx.fill();
-      canvasCtx.strokeStyle = isRaised ? 'rgba(200,0,0,0.9)' : 'rgba(0,200,0,0.9)';
+      canvasCtx.strokeStyle = 'rgba(0,200,0,0.9)';
       canvasCtx.lineWidth = 3;
       canvasCtx.stroke();
 
       // Middle finger line (MCP → PIP → DIP → TIP)
-      canvasCtx.strokeStyle = color;
+      canvasCtx.strokeStyle = '#00ff00';
       canvasCtx.lineWidth = 3;
       [9,10,11,12].reduce((a, b) => {
         canvasCtx.beginPath();
@@ -1227,27 +1223,37 @@ function onHandResults(results) {
   }
 }
 
-// ── Middle finger detection ────────────────────────────
+// ── Up-down swing detection (中指指尖上下摆动计数) ──────
 function detectMiddleFinger(landmarks) {
-  let anyRaised = false;
+  const hand = landmarks[0];
+  if (!hand) return;
 
-  for (const hand of landmarks) {
-    // 中指竖起: 指尖高于第二关节，第二关节高于根部
-    const tip_y = hand[12].y;
-    const pip_y = hand[10].y;
-    const mcp_y = hand[9].y;
+  const tipY = hand[12].y;   // 中指指尖 Y
+  const mcp  = hand[9];      // 中指根部
+  const wrist = hand[0];     // 手腕
 
-    if (tip_y < pip_y && pip_y < mcp_y) {
-      anyRaised = true;
-      break;
-    }
+  // 用手掌大小（手腕到中指根）作为阈值参考，自适应距离
+  const handSize = Math.hypot(mcp.x - wrist.x, mcp.y - wrist.y) || 0.15;
+
+  if (baselineY === null) {
+    baselineY = tipY;
+    return;
   }
 
-  if (anyRaised && !middleRaised) {
+  const UP_THRESHOLD   = handSize * 0.5;  // 向上移动半个手掌大小
+  const DOWN_THRESHOLD = handSize * 0.3;  // 向下移动 1/3 手掌大小
+
+  if (swingState === 'down' && (baselineY - tipY) > UP_THRESHOLD) {
+    // 手向上摆动到位 → 计数 +1
     crossCount++;
     $('#testCounter').textContent = `次数: ${crossCount}`;
+    swingState = 'up';
+    baselineY = tipY;
+  } else if (swingState === 'up' && (tipY - baselineY) > DOWN_THRESHOLD) {
+    // 手向下摆动复位 → 准备下一次
+    swingState = 'down';
+    baselineY = tipY;
   }
-  middleRaised = anyRaised;
 }
 
 // ── Countdown ───────────────────────────────────────────
@@ -1272,7 +1278,7 @@ function startCountdown() {
 
 // ── Start test ──────────────────────────────────────────
 function startTesting() {
-  testState = 'testing'; crossCount = 0; testTimeLeft = 60; middleRaised = false;
+  testState = 'testing'; crossCount = 0; testTimeLeft = 60; baselineY = null; swingState = 'down';
   $('#testTimer').style.display = '';
   $('#testCounter').style.display = '';
   $('#testTimer').textContent = `剩余 ${testTimeLeft}s`;
